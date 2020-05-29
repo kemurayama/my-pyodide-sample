@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <link rel="stylesheet" href="static/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="static/css/styles.css" />
+  <title>Hello, pyodide!</title>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+    <a class="navbar-brand" href="/index.html">Pyodide Test</a>
+    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item active">
+          <a class="nav-link" href="/">Home</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="https://github.com/kemurayama/my-pyodide-sample">Repos</a>
+        </li>
+      </ul>
+    </div>
+  </nav>
+
+  <main role="main">
+
+    <div class="container py-4">
+
+
+      <div class="col-md-12">
+        <h2>Hello Pyodide !!</h2>
+
+        <p>This is my Pyodide test page hosted on Azure Static Web App. You can try how Pyodide works.</p>
+      </div>
+      <div class="col-md-12">
+        <h3>Fibonacci Test</h3>
+
+        <div class="row">
+          <div class="col-md-6">
+            <input type="text" class="form-control" id="fibval" placeholder="input number" />
+          </div>
+          <div class="col-md-6">
+            <button class="btn btn-primary" type="submit" id="fib">Go!!</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <ul id="fib_res">
+
+            </ul>
+          </div>
+        </div>
+
+        <div class="row py-4">
+          <div class="col-md-4">
+            <label for="mu">mu</label>
+            <input type="text" class="form-control" id="mu" value="200" /><br />
+          </div>
+          <div class="col-md-4">
+            <label for="sigma">sigma</label>
+            <input type="text" class="form-control" id="sigma" value="20" /><br />
+          </div>
+          <div class="col-md-4">
+            <label for="bins">bins</label>
+            <input type="text" class="form-control" id="bins" value="100" /><br />
+          </div>
+        </div>
+        <div class="row py-4">
+          <div class="col-md-6 mb-3">
+            <button class="btn btn-primary" type="submit" id="matplotlib">print matplotlib</button>
+          </div>
+        </div>
+        <div class="row py-4">
+          <div class="col-md-12">
+            <img id="decoded" />
+          </div>
+        </div>
+      </div>
+      <div class="col-md-12" id="one"></div>
+      <div class="col-md-12"></div>
+      <div class="col-md-12"></div>
+
+
+    </div>
+
+  </main>
+
+
+  <div></div>
+  <script type="text/javascript">
+    window.languagePluginUrl = "https://pyodide-cdn2.iodide.io/v0.15.0/full/";
+  </script>
+  <script src="https://pyodide-cdn2.iodide.io/v0.15.0/full/pyodide.js"></script>
+  <script src="static/js/jquery.js"></script>
+  <script type="text/javascript">
+
+    $('#fib').on('click', function () {
+      languagePluginLoader.then(function () {
+        var input_val = $('#fibval').val();
+        var fibres = pyodide.runPython(
+          `
+              def Fib(n):
+  
+                  if n == 0:
+                      return 0
+                  elif n == 1:
+                      return 1
+                  else:
+                      return Fib(n-1) + Fib(n-2)
+  
+  
+              [Fib(n) for n in range(${input_val})]
+          `
+        );
+
+        var $fib_list = $('#fib_res');
+        $.each(fibres, function (i, val) {
+          var li = `<li>${val}</li>`;
+          $fib_list.append(li);
+        });
+
+      });
+    });
+
+
+    $('#matplotlib').on('click', function () {
+      languagePluginLoader.then(function () {
+        pyodide.loadPackage(['matplotlib', 'numpy']).then(() => {
+          // matplotlib is now available
+
+          var mu = $('#mu').val();
+          var sigma = $('#sigma').val();
+          var bins = $('#bins').val();
+
+          var plot = pyodide.runPython(`
+          # https://matplotlib.org/3.2.1/gallery/statistics/histogram_features.html
+          # https://stackoverflow.com/questions/56583696/how-to-redirect-render-pyodide-output-in-browser
+          # sample from matplotlib web page
+
+          import io
+          import base64
+
+          import matplotlib.pyplot as plt
+          import numpy as np
+
+          # used for image binary
+          buffer = io.BytesIO()
+
+          np.random.seed(20200529)
+
+          # placeholder can be used.
+          mu = ${mu}  
+          sigma = ${sigma}  
+          x = mu + sigma * np.random.randn(529)
+
+          num_bins = ${bins}
+          fig, ax = plt.subplots()
+
+          ax.hist(x, num_bins, density=1)
+
+          ax.set_xlabel('X')
+          ax.set_ylabel('Y')
+          ax.set_title(r'Histogram: $\mu=${mu}$, $\sigma=${sigma}$')
+
+          fig.tight_layout()
+
+          fig.savefig(buffer, format='png')
+          buffer.seek(0)
+          b64str = base64.b64encode(buffer.read()).decode('UTF-8')
+          decoded_image = 'data:image/png;base64,' + b64str
+        `);
+
+          $("#decoded").attr('src', pyodide.globals.decoded_image);
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>
